@@ -12,13 +12,16 @@ object TDMConnector: TTDMConnector
     Top = 56
   end
   object RESTClient1: TRESTClient
-    Accept = 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+    Accept = 'application/json, text/plain; q=0.9, text/html;q=0.8,'
+    AcceptCharset = 'UTF-8, *;q=0.8'
+    AcceptEncoding = 'identity'
     Params = <>
     HandleRedirects = True
     Left = 64
     Top = 56
   end
   object RESTResponse1: TRESTResponse
+    ContentType = 'application/json'
     Left = 264
     Top = 56
   end

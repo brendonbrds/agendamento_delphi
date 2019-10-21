@@ -6,7 +6,10 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.Buttons, Vcl.StdCtrls,
-  Vcl.ComCtrls, Vcl.Grids, Vcl.DBGrids, System.JSON, UBaseView;
+  Vcl.ComCtrls, Vcl.Grids, Vcl.DBGrids, System.JSON, UBaseView,
+  FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Param,
+  FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf, FireDAC.DApt.Intf,
+  Data.DB, FireDAC.Comp.DataSet, FireDAC.Comp.Client;
 
 type
   TForm1 = class(TBaseView)
@@ -34,20 +37,22 @@ type
     Panel4: TPanel;
     grid_listaAgend: TDBGrid;
     time_picker: TDateTimePicker;
+    DataSource1: TDataSource;
+    FDMemTable1: TFDMemTable;
     procedure btn_adicionarClick(Sender: TObject);
     procedure btn_salvarClick(Sender: TObject);
     procedure clear;
     procedure check_canceladoClick(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
     procedure FormKeyPress(Sender: TObject; var Key: Char);
     procedure cod_medicoKeyPress(Sender: TObject; var Key: Char);
     procedure cod_pacienteKeyPress(Sender: TObject; var Key: Char);
     procedure btn_excluirClick(Sender: TObject);
     procedure FormShow(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
     { Private declarations }
   public
-    { Public declarations }
+    procedure AfterConstruction; override;
   end;
 
 var
@@ -60,7 +65,13 @@ implementation
 
 {$R *.dfm}
 
-uses UListaMedicos, UListaPacientes;
+uses UListaMedicos, UListaPacientes, UBaseModel;
+
+procedure TForm1.AfterConstruction;
+begin
+  inherited;
+  Self.FDataSet := TBaseModel.Create(FDMemTable1);
+end;
 
 procedure TForm1.btn_adicionarClick(Sender: TObject);
 begin
@@ -122,9 +133,10 @@ begin
       // ShowMessage('ok');
 end;
 
+
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-  memo_mtvCancel.Text := '';
+  //
 end;
 
 procedure TForm1.FormKeyPress(Sender: TObject; var Key: Char);
@@ -195,6 +207,7 @@ end;
 procedure TForm1.FormShow(Sender: TObject);
 begin
   // Os controles da tela recebem os valores de acordo com os atributos do objeto
+  memo_mtvCancel.Text := '';
   cod_medico.Text := Self.DataSet.GetProp('cod_medico');
   cod_paciente.Text := Self.DataSet.GetProp('cod_paciente');
   memo_mtvCancel.Text := Self.DataSet.GetProp('memo_mtvCancel');

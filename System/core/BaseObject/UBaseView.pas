@@ -7,7 +7,7 @@ uses
 
 type
   TBaseView = class(TForm)
-  private
+  protected
     FDataSet: TBaseModel;
   public
     constructor Create(ADataSet: TBaseModel); overload;

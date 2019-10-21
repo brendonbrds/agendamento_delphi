@@ -241,6 +241,7 @@ object Form1: TForm1
           Align = alClient
           BorderStyle = bsNone
           Color = clBtnHighlight
+          DataSource = DataSource1
           DrawingStyle = gdsGradient
           GradientEndColor = 15790320
           GradientStartColor = 15790320
@@ -1139,5 +1140,20 @@ object Form1: TForm1
     ParentShowHint = False
     ShowHint = False
     TabOrder = 9
+  end
+  object DataSource1: TDataSource
+    Left = 292
+    Top = 384
+  end
+  object FDMemTable1: TFDMemTable
+    FetchOptions.AssignedValues = [evMode]
+    FetchOptions.Mode = fmAll
+    ResourceOptions.AssignedValues = [rvSilentMode]
+    ResourceOptions.SilentMode = True
+    UpdateOptions.AssignedValues = [uvCheckRequired]
+    UpdateOptions.CheckRequired = False
+    AutoCommitUpdates = False
+    Left = 528
+    Top = 384
   end
 end
