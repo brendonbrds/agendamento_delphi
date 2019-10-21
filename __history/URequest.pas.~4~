@@ -1,0 +1,27 @@
+unit URequest;
+
+interface
+
+uses
+  System.SysUtils, System.Classes, IdBaseComponent, IdComponent,
+  IdTCPConnection, IdTCPClient, IdHTTP;
+
+type
+  TDataModule1 = class(TDataModule)
+    IdHTTP1: TIdHTTP;
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  DataModule1: TDataModule1;
+
+implementation
+
+{%CLASSGROUP 'Vcl.Controls.TControl'}
+
+{$R *.dfm}
+
+end.

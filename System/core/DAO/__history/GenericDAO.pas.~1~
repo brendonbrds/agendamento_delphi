@@ -1,0 +1,310 @@
+{
+  Para que funcione essa classe deve-se declarar na clasula uses o DataModule que faz
+  o acesso ao banco de dados e nele devem haver as funcoes ExecSQL e GetDataSet
+  implementadas.
+}
+
+unit GenericDAO;
+
+interface
+
+uses
+  Rtti, CAtribEntity, TypInfo, SysUtils, UModuloConexaoBanco, Data.DB,
+  Data.FireDACJSONReflect, FireDAC.Comp.Client, Vcl.Forms;
+
+type
+  TGenericDAO = class
+    private
+      class function GetTableName<T: class>(Obj: T):string;
+      class function GetPKey<T: class>(Obj: T):string;
+    public
+      //Metodos para o CRUD
+      class function Insert<T: class>(Obj: T):Boolean;
+      class function Get<T: class>(Obj: T; Params, Group, Order, Limit: string): TFDJSONDataSets;
+      class function Update<T: class>(Obj: T; IDTabela: Integer):Boolean;
+      class function Delete<T: class>(Obj: T; IDTabela: Integer): Boolean;
+      class function Query(strQry: string): TFDJSONDataSets;
+      class function Command(strQry: string): Boolean;
+
+      class function GetPKeyValue<T: class>(Obj: T): TFDJSONDataSets;
+      class function CheckKeyExists<T: class>(Obj: T; IDTabela: Integer): TFDJSONDataSets;
+  end;
+
+implementation
+
+{ TGenericDAO }
+
+class function TGenericDAO.CheckKeyExists<T>(Obj: T; IDTabela: Integer): TFDJSONDataSets;
+var
+  QRY: string;
+begin
+  QRY := 'SELECT 1 FROM ' + GetTableName(Obj) + ' WHERE id = ' + IntToStr(IDTabela);
+
+  Result := ModuloConexaoBanco.GetDataSet(QRY);
+end;
+
+class function TGenericDAO.Command(strQry: string): Boolean;
+begin
+  Result := ModuloConexaoBanco.ExecSQL(strQry);
+end;
+
+class function TGenericDAO.Delete<T>(Obj: T; IDTabela: Integer): Boolean;
+var
+  sQry: string;
+begin
+  sQry := 'DELETE FROM ' + GetTableName(Obj) + ' WHERE id = ' + IntToStr(IDTabela);
+  //GeraLog('QUERY: ' + sQry);
+  Result := ModuloConexaoBanco.ExecSQL(sQry);
+end;
+
+class function TGenericDAO.Get<T>(Obj: T; Params, Group, Order, Limit: string): TFDJSONDataSets;
+var
+  sQry: string;
+begin
+  sQry := 'SELECT T1.* FROM ' + GetTableName(Obj) + ' T1';
+
+   if Params <> '' then
+  begin
+    sQry := sQry + ' WHERE ' + Params;
+  end;
+
+  if Group <> '' then
+  begin
+    sQry := sQry + ' GROUP BY ' +  Group;
+  end;
+
+  if Order <> '' then
+  begin
+    sQry := sQry +  ' ORDER BY ' + Order;
+  end;
+
+  if Limit <> '' then
+  begin
+    sQry := sQry + ' LIMIT ' + Limit;
+  end;
+
+  //GeraLog('QUERY: ' + sQry);
+  Result := ModuloConexaoBanco.GetDataSet(sQry);
+end;
+
+class function TGenericDAO.GetPKey<T>(Obj: T): string;
+var
+  Contexto: TRttiContext;
+  TypObj: TRttiType;
+  Atributo: TCustomAttribute;
+  strTable: String;
+begin
+  //Usa os recursos de RTTI(Run-Time Type Information) para identificar o atributo
+  //que representa a primary key na tabela fisica do banco de dados associada a classe
+  Contexto := TRttiContext.Create;
+  TypObj := Contexto.GetType(TObject(Obj).ClassInfo);
+  for Atributo in TypObj.GetAttributes do
+  begin
+    if Atributo is KeyField then
+      Exit(KeyField(Atributo).Name);
+  end;
+end;
+
+class function TGenericDAO.GetPKeyValue<T>(Obj: T): TFDJSONDataSets;
+begin
+  //QRY := 'SELECT COALESCE(MAX(' + GetPKey(Obj) + '),1) + 1 FROM ' + GetTableName(Obj);
+  Result := Query('SELECT COALESCE(MAX(id),1) + 1 FROM ' + GetTableName(Obj));
+end;
+
+class function TGenericDAO.GetTableName<T>(Obj: T): string;
+var
+  Contexto: TRttiContext;
+  TypObj: TRttiType;
+  Atributo: TCustomAttribute;
+  strTable: String;
+begin
+  //Usa os recursos de RTTI(Run-Time Type Information) para identificar o nome
+  //da tabela fisica do banco de dados associada a classe
+  Contexto := TRttiContext.Create;
+  TypObj := Contexto.GetType(TObject(Obj).ClassInfo);
+  for Atributo in TypObj.GetAttributes do
+  begin
+    if Atributo is TableName then
+      Exit(TableName(Atributo).Name);
+  end;
+end;
+
+class function TGenericDAO.Insert<T>(Obj: T): Boolean;
+var
+  Contexto: TRttiContext;
+  TypObj: TRttiType;
+  Prop: TRttiProperty;
+  strInsert, strFields, strValues: String;
+  Atributo: TCustomAttribute;
+  Tipo: TTypeKind;
+  BoolStr: string;
+begin
+  //GeraLog('Preparando dados para serem inseridos...');
+
+  strInsert := 'INSERT INTO ' + GetTableName(Obj);
+
+  Contexto := TRttiContext.Create;
+  TypObj := Contexto.GetType(TObject(Obj).ClassInfo);
+
+  //Percorre todas as propriedades e atributos do objeto informado como parametro
+  for Prop in TypObj.GetProperties do
+  begin
+    for Atributo in Prop.GetAttributes do
+    begin
+        //Verifica se o atributo eh um field
+       if Atributo is FieldName then
+       begin
+         //Montra a string contendo os campos da tabela que receberão valores
+         strFields := strFields + FieldName(Atributo).Name  + ',';
+
+         //Verifica o tipo de dados aceito pelo campo
+         case Prop.GetValue(TObject(Obj)).Kind of
+
+           //Tipos referentes a texto
+           tkWChar, tkLString, tkWString, tkString,
+           tkChar, tkUString:
+             //Faz typecast para string
+             strValues := strValues +
+             QuotedStr(Prop.GetValue(TObject(Obj)).AsString) + ',';
+
+           //Tipos referentes a numeros inteiros
+           tkInteger, tkInt64:
+             //Faz o typecast para inteiro
+             strValues := strValues +
+             IntToStr(Prop.GetValue(TObject(Obj)).AsInteger) + ',';
+
+           //Tipos referentes a float,real,etc(todos com ponto flutuante)
+           tkFloat:
+             //Typecast para floats
+             strValues := strValues +
+             FloatToStr(Prop.GetValue(TObject(Obj)).AsExtended) + ',';
+
+           //Tipos referentes a booleanos e outros logicos
+           tkEnumeration:
+           begin
+              //Tratamento para forçar tipos booleanos a entrar como texto pois
+             //por alguma razao o Delphi estava salvando como -1 sempre ao inves de
+             //fazer typecast
+             if Prop.GetValue(TObject(Obj)).AsBoolean then
+             begin
+               BoolStr := QuotedStr('True');
+             end else begin
+               BoolStr := QuotedStr('False');
+             end;
+             strValues := strValues + BoolStr + ',';
+           end
+
+         else
+            //GeraLog('Tipo de Dado localizado não é reconhecido pelo sistema atualmente.');
+            raise Exception.Create('Não foi encontrado tratamento para tipo de dado atualmente não suportado e isso impediu que a sincronização ' +
+                                   'de dados fosse concluída. Consulte o log para maiores informações.');
+         end;
+       end;
+    end;
+  end;
+  //Retira a ultima virgula que fica sobrando em cada variavel
+  strFields := Copy(strFields, 1, Length(strFields) - 1);
+  strValues := Copy(strValues, 1, Length(strValues) - 1);
+
+  //Concatena todas as variaveis formando uma string de insert completa
+  strInsert := strInsert + ' ( ' + strFields + ' )  VALUES ( ' + strValues + ' )';
+
+  //GeraLog('SQL => Instrução: ' + strInsert);
+
+  result := ModuloConexaoBanco.ExecSQL(strInsert);
+end;
+
+class function TGenericDAO.Query(strQry: string): TFDJSONDataSets;
+var
+  TAB: TFDMemtable;
+begin
+  //GeraLog('QUERY: ' + strQry);
+
+  Result := ModuloConexaoBanco.GetDataSet(strQry);
+end;
+
+class function TGenericDAO.Update<T>(Obj: T; IDTabela: Integer): Boolean;
+var
+  Contexto: TRttiContext;
+  TypObj: TRttiType;
+  Prop: TRttiProperty;
+  strUpdate: String;
+  Atributo: TCustomAttribute;
+  Tipo: TTypeKind;
+  BoolStr: string;
+begin
+  strUpdate := 'UPDATE ' + GetTableName(Obj) + ' SET ';
+
+  //GeraLog('Preparando dados para serem atualizados...');
+
+  Contexto := TRttiContext.Create;
+  TypObj := Contexto.GetType(TObject(Obj).ClassInfo);
+
+  //Percorre todas as propriedades e atributos do objeto informado como parametro
+  for Prop in TypObj.GetProperties do
+  begin
+    for Atributo in Prop.GetAttributes do
+    begin
+        //Verifica se o atributo eh um field
+       if Atributo is FieldName then
+       begin
+         //Montra a string contendo os campos da tabela que receberão valores
+         strUpdate := strUpdate + FieldName(Atributo).Name  + ' = ';
+
+         //Verifica o tipo de dados aceito pelo campo
+         case Prop.GetValue(TObject(Obj)).Kind of
+
+           //Tipos referentes a texto
+           tkWChar, tkLString, tkWString, tkString,
+           tkChar, tkUString:
+             //Faz typecast para string
+             strUpdate := strUpdate +
+             QuotedStr(Prop.GetValue(TObject(Obj)).AsString) + ',';
+
+           //Tipos referentes a numeros inteiros
+           tkInteger, tkInt64:
+             //Faz o typecast para inteiro
+             strUpdate := strUpdate +
+             IntToStr(Prop.GetValue(TObject(Obj)).AsInteger) + ',';
+
+           //Tipos referentes a float,real,etc(todos com ponto flutuante)
+           tkFloat:
+             //Typecast para floats
+             strUpdate := strUpdate +
+             FloatToStr(Prop.GetValue(TObject(Obj)).AsExtended) + ',';
+
+           //Tipos referentes a booleanos e outros logicos
+           tkEnumeration:
+           begin
+             //Tratamento para forçar tipos booleanos a entrar como texto pois
+             //por alguma razao o Delphi estava salvando como -1 sempre ao inves de
+             //fazer typecast
+             if Prop.GetValue(TObject(Obj)).AsBoolean then
+             begin
+               BoolStr := QuotedStr('True');
+             end else begin
+               BoolStr := QuotedStr('False');
+             end;
+
+             strUpdate := strUpdate + BoolStr + ',';
+           end
+         else
+            //GeraLog('Tipo de Dado localizado não é reconhecido pelo sistema atualmente.');
+            raise Exception.Create('Não foi encontrado tratamento para tipo de dado atualmente não suportado e isso impediu que a sincronização ' +
+                                   'de dados fosse concluída. Consulte o log para maiores informações.');
+         end;
+       end;
+    end;
+  end;
+  //Retira a ultima virgula que fica sobrando em cada variavel
+  strUpdate := Copy(strUpdate, 1, Length(strUpdate) - 1);
+
+  //Concatena todas as variaveis formando uma string de update completa
+  strUpdate := strUpdate + ' WHERE id = ' + IntToStr(IDTabela);
+
+  //GeraLog('QUERY: ' + strUpdate);
+
+  Result := ModuloConexaoBanco.ExecSQL(strUpdate);
+end;
+
+end.

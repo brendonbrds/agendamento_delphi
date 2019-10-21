@@ -1,0 +1,29 @@
+unit UMensagemDocFiscalController;
+
+interface
+
+uses UBaseController, UMensagemDocFiscalModel, UMensagem, System.Classes,
+  Data.DB, FireDAC.Comp.DataSet;
+
+type
+  TMensagemDocFiscalController = class(TBaseController)
+  private
+    ModelMsgDocFiscal: TMensagemDocFiscalModel;
+    ViewMsgDocFiscal : TFMensagem;
+  public
+    constructor Create(ADataSet: TFDDataSet); overload;
+  end;
+
+implementation
+
+{ TMensagemDocFiscalController }
+
+constructor TMensagemDocFiscalController.Create(ADataSet: TFDDataSet);
+begin
+  //Cria uma instancia para os objetos que formam o MVC completo
+  ModelMsgDocFiscal := TMensagemDocFiscalModel.Create(ADataSet);
+  ViewMsgDocFiscal  := TFMensagem.Create(ModelMsgDocFiscal);
+  inherited Create(ModelMsgDocFiscal, ViewMsgDocFiscal);
+end;
+
+end.

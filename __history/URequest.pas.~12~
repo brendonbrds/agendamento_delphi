@@ -1,0 +1,34 @@
+unit URequest;
+
+interface
+
+uses
+  System.SysUtils, System.Classes, IdBaseComponent, IdComponent,
+  IdTCPConnection, IdTCPClient, IdHTTP, System.JSON;
+
+type
+  TTDMConector = class(TDataModule)
+    IdHTTP1: TIdHTTP;
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+    urlBase = 'http://167.71.177.248:3333/';
+    token = '?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1aWQiOjEsImlhdCI6MTU3MDcyMTkxM30.3vzxGOiM0Ig4KnyXpmEJpH2JUOxpRUsfZesOn81Irvc';
+  end;
+
+var
+  TDMConector: TTDMConector;
+  i: integer;
+  lURL, id, retorno: String;
+  lResponse: TStringStream;
+  jsonObj: TJSONObject;
+
+
+implementation
+
+{ %CLASSGROUP 'Vcl.Controls.TControl' }
+
+{$R *.dfm}
+
+end.

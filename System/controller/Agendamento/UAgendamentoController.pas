@@ -1,0 +1,26 @@
+unit UAgendamentoController;
+
+interface
+
+uses UBaseController, UAgendamentoModel, UAgendamentos, System.Classes,
+  Data.DB, FireDAC.Comp.DataSet;
+
+type
+  TAgendamentoController = class(TBaseController)
+  private
+    ModelAgendamento: TAgendamentoModel;
+    ViewAgendamento : TForm1;
+  public
+    constructor Create(ADataSet: TFDDataSet); overload;
+  end;
+
+implementation
+
+constructor TAgendamentoController.Create(ADataSet: TFDDataSet);
+begin
+  ModelAgendamento := TAgendamentoModel.Create(ADataSet);
+  ViewAgendamento  := TForm1.Create(ModelAgendamento);
+  inherited Create(ModelAgendamento, ViewAgendamento);
+end;
+
+end.

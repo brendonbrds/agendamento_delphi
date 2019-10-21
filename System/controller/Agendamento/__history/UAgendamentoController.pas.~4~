@@ -1,0 +1,29 @@
+unit UAgendamentoController;
+
+interface
+
+uses UBaseController, UAgendamentoModel, UAgendamentos, System.Classes,
+  Data.DB, FireDAC.Comp.DataSet;
+
+type
+  TAgendamentosController = class(TBaseController)
+  private
+    ModelAgendamentos: TAgendamentosModel;
+    ViewAgendamentos : TForm1;
+  public
+    constructor Create(ADataSet: TFDDataSet); overload;
+  end;
+
+implementation
+
+{ TMensagemDocFiscalController }
+
+constructor TAgendamentoController.Create(ADataSet: TFDDataSet);
+begin
+  //Cria uma instancia para os objetos que formam o MVC completo
+  ModelMsgDocFiscal := TAgendamentoModel.Create(ADataSet);
+  ViewMsgDocFiscal  := TAgendamento.Create(ModelMsgDocFiscal);
+  inherited Create(ModelMsgDocFiscal, ViewMsgDocFiscal);
+end;
+
+end.

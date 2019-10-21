@@ -1,0 +1,27 @@
+unit URequest;
+
+interface
+
+uses
+  System.SysUtils, System.Classes, IdBaseComponent, IdComponent,
+  IdTCPConnection, IdTCPClient, IdHTTP, System.JSON;
+
+type
+  TTDMConexao = class(TDataModule)
+    IdHTTP1: TIdHTTP;
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  TDMConexao: TTDMConexao;
+
+implementation
+
+{%CLASSGROUP 'Vcl.Controls.TControl'}
+
+{$R *.dfm}
+
+end.
