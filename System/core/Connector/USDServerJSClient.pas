@@ -155,7 +155,7 @@ begin
 
   ParamURL := ParamURL + 'token=' + Self.Token;
 
-  Result := ParamURL
+  Result := ParamURL;
 end;
 
 function TSDServerJSClient.Post(sURI, AJSON: string): string;

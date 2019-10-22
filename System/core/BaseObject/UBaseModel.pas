@@ -13,7 +13,7 @@ type
     Connector: TObject;
     function GetRoute(Obj: TObject): string;
     procedure SetObjeto(AOrigem: TJSONValue);
-   // procedure AfterConstruction; override;
+    // procedure AfterConstruction; override;
   public
     constructor Create(ADataSet: TFDDataSet);
     procedure AfterConstruction;
@@ -21,11 +21,12 @@ type
     function GetProp(AProp: string): string;
     procedure SetProp(AProp: string; AValue: string);
 
-    //Metodos para o CRUD com RestFull
+    // Metodos para o CRUD com RestFull
     procedure GET(AID: string);
     function Save: string;
     function SaveMany(ADataSet: TFDDataSet): string;
     function Delete: string;
+
   protected
     function ToJSON: string;
     function JSONize(const Origem: TFDDataSet): string;
@@ -42,16 +43,16 @@ procedure TBaseModel.AfterConstruction;
 begin
   inherited AfterConstruction;
   Self.FLista := TFDDataSet.Create(nil);
-  //Obtem a lista de dados do banco atraves de request para a API
-  DMConnector.SDClient.Get(GetRoute(TObject(Self)), Self.FLista);
+  // Obtem a lista de dados do banco atraves de request para a API
+  DMConnector.SDClient.GET(GetRoute(TObject(Self)), Self.FLista);
 
 end;
 
 constructor TBaseModel.Create(ADataSet: TFDDataSet);
 begin
   Self.FLista := ADataSet;
-  //Obtem a lista de dados do banco atraves de request para a API
-  DMConnector.SDClient.Get(GetRoute(TObject(Self)), Self.FLista);
+  // Obtem a lista de dados do banco atraves de request para a API
+  DMConnector.SDClient.GET(GetRoute(TObject(Self)), Self.FLista);
 end;
 
 function TBaseModel.Delete: string;
@@ -63,7 +64,9 @@ begin
   if sID = '0' then
   begin
     Exit;
-  end else begin
+  end
+  else
+  begin
     //
     Result := DMConnector.SDClient.Delete(GetRoute(Self), sID);
   end;
@@ -81,8 +84,8 @@ var
   TypObj: TRttiType;
   Atributo: TCustomAttribute;
 begin
-  //Usa os recursos de RTTI(Run-Time Type Information) para identificar o nome
-  //da rota definida na API para acesso aos dados do cadastro
+  // Usa os recursos de RTTI(Run-Time Type Information) para identificar o nome
+  // da rota definida na API para acesso aos dados do cadastro
   Contexto := TRttiContext.Create;
   TypObj := Contexto.GetType(TObject(Obj).ClassInfo);
   for Atributo in TypObj.GetAttributes do
@@ -95,11 +98,11 @@ end;
 function TBaseModel.JSONize(const Origem: TFDDataSet): string;
 const
   _JSONPrefix = '{';
-  _JSONSufix  = '}';
+  _JSONSufix = '}';
   _JSONBlockIni = '[';
   _JSONBlockFim = ']';
 var
-  strJSON, JSONResult : string;
+  strJSON, JSONResult: string;
   i, j: Integer;
 begin
   JSONResult := '';
@@ -112,19 +115,21 @@ begin
       begin
         for i := 0 to Origem.FieldCount - 1 do
         begin
-          strJSON := strJSON + '"' + Origem.Fields[i].FieldName + '": ' +
-                     '"' + Origem.Fields[i].AsString + '","';
+          strJSON := strJSON + '"' + Origem.Fields[i].FieldName + '": ' + '"' +
+            Origem.Fields[i].AsString + '","';
         end;
-        strJSON := Copy(strJSON, 1, length(strJSON) -1);
+        strJSON := Copy(strJSON, 1, length(strJSON) - 1);
         strJSON := _JSONPrefix + strJSON + _JSONSufix + ',';
       end;
-      strJSON := Copy(strJSON, 1, length(strJSON) -1);
+      strJSON := Copy(strJSON, 1, length(strJSON) - 1);
       JSONResult := JSONResult + strJSON + _JSONBlockFim;
-    end else begin
+    end
+    else
+    begin
       for i := 0 to Origem.FieldCount - 1 do
       begin
-        strJSON := strJSON + '"' + Origem.Fields[i].FieldName + '": ' +
-                   '"' + Origem.Fields[i].Value + '","';
+        strJSON := strJSON + '"' + Origem.Fields[i].FieldName + '": ' + '"' +
+          Origem.Fields[i].Value + '","';
       end;
     end;
   end;
@@ -150,22 +155,21 @@ begin
       begin
         if FieldName(Atributo).Name = AProp then
         begin
-          //Verifica o tipo de dados aceito pelo campo
+          // Verifica o tipo de dados aceito pelo campo
           case Prop.GetValue(TObject(Self)).Kind of
-            //Tipos referentes a texto
-            tkWChar, tkLString, tkWString, tkString,
-            tkChar, tkUString:
+            // Tipos referentes a texto
+            tkWChar, tkLString, tkWString, tkString, tkChar, tkUString:
               Exit(Prop.GetValue(TObject(Self)).AsString);
 
-            //Tipos referentes a numeros inteiros
+            // Tipos referentes a numeros inteiros
             tkInteger, tkInt64:
               Exit(IntToStr(Prop.GetValue(TObject(Self)).AsInteger));
 
-            //Tipos referentes a float,real,etc(todos com ponto flutuante)
+            // Tipos referentes a float,real,etc(todos com ponto flutuante)
             tkFloat:
               Exit(FloatToStr(Prop.GetValue(TObject(Self)).AsExtended));
 
-            //Tipos referentes a booleanos e outros logicos
+            // Tipos referentes a booleanos e outros logicos
             tkEnumeration:
               if Prop.GetValue(TObject(Self)).AsBoolean then
                 Exit('True')
@@ -184,14 +188,16 @@ var
 begin
   sID := Self.GetProp('id');
 
-  if sID = '0' then
+  if (sID = '0') or (sID = '') then
   begin
-    Self.SetProp('id','19');
+    Self.SetProp('id', '19');
     Result := DMConnector.SDClient.Post(GetRoute(Self), Self.ToJSON);
-    //Exit;
-  end else begin
-    //
-    Result := DMConnector.SDClient.Put(GetRoute(Self), sID, Self.ToJSON);
+    // Exit;
+  end
+  else
+  begin
+//    Result := DMConnector.SDClient.Put(GetRoute(Self), sID, Self.ToJSON);
+Result := DMConnector.SDClient.Post(GetRoute(Self), Self.ToJSON);
   end;
 end;
 
@@ -216,8 +222,8 @@ begin
   TypObj := Contexto.GetType(TObject(Self).ClassInfo);
 
   jsStream := TStringStream.Create(AOrigem.ToString);
-  jsObj    := TJSONObject.Create;
-  jsObj.Parse(jsStream.Bytes,0);
+  jsObj := TJSONObject.Create;
+  jsObj.Parse(jsStream.Bytes, 0);
 
   for Prop in TypObj.GetProperties do
   begin
@@ -229,24 +235,24 @@ begin
         begin
           if jsPair.JsonString.Value = FieldName(Atributo).Name then
           begin
-            //Verifica o tipo de dados aceito pelo campo
+            // Verifica o tipo de dados aceito pelo campo
             case Prop.GetValue(TObject(Self)).Kind of
-              //Tipos referentes a texto
-              tkWChar, tkLString, tkWString, tkString,
-              tkChar, tkUString:
-                Prop.SetValue(TObject(Self),jsPair.JsonValue.Value);
+              // Tipos referentes a texto
+              tkWChar, tkLString, tkWString, tkString, tkChar, tkUString:
+                Prop.SetValue(TObject(Self), jsPair.JSONValue.Value);
 
-              //Tipos referentes a numeros inteiros
+              // Tipos referentes a numeros inteiros
               tkInteger, tkInt64:
-                Prop.SetValue(TObject(Self), StrToInt(jsPair.JsonValue.Value));
+                Prop.SetValue(TObject(Self), StrToInt(jsPair.JSONValue.Value));
 
-              //Tipos referentes a float,real,etc(todos com ponto flutuante)
+              // Tipos referentes a float,real,etc(todos com ponto flutuante)
               tkFloat:
-                Prop.SetValue(TObject(Self), StrToFloat(jsPair.JsonValue.Value));
+                Prop.SetValue(TObject(Self),
+                  StrToFloat(jsPair.JSONValue.Value));
 
-              //Tipos referentes a booleanos e outros logicos
+              // Tipos referentes a booleanos e outros logicos
               tkEnumeration:
-                Prop.SetValue(TObject(Self), StrToBool(jsPair.JsonValue.Value));
+                Prop.SetValue(TObject(Self), StrToBool(jsPair.JSONValue.Value));
             end;
             Break;
           end;
@@ -265,7 +271,7 @@ var
   Tipo: TTypeKind;
 begin
   Contexto := TRttiContext.Create;
-  TypObj   := Contexto.GetType(TObject(Self).ClassInfo);
+  TypObj := Contexto.GetType(TObject(Self).ClassInfo);
 
   for Prop in TypObj.GetProperties do
   begin
@@ -275,22 +281,21 @@ begin
       begin
         if AProp = FieldName(Atributo).Name then
         begin
-          //Verifica o tipo de dados aceito pelo campo
+          // Verifica o tipo de dados aceito pelo campo
           case Prop.GetValue(TObject(Self)).Kind of
-            //Tipos referentes a texto
-            tkWChar, tkLString, tkWString, tkString,
-            tkChar, tkUString:
-              Prop.SetValue(TObject(Self),AValue);
+            // Tipos referentes a texto
+            tkWChar, tkLString, tkWString, tkString, tkChar, tkUString:
+              Prop.SetValue(TObject(Self), AValue);
 
-            //Tipos referentes a numeros inteiros
+            // Tipos referentes a numeros inteiros
             tkInteger, tkInt64:
               Prop.SetValue(TObject(Self), StrToInt(AValue));
 
-            //Tipos referentes a float,real,etc(todos com ponto flutuante)
+            // Tipos referentes a float,real,etc(todos com ponto flutuante)
             tkFloat:
               Prop.SetValue(TObject(Self), StrToFloat(AValue));
 
-            //Tipos referentes a booleanos e outros logicos
+            // Tipos referentes a booleanos e outros logicos
             tkEnumeration:
               Prop.SetValue(TObject(Self), StrToBool(AValue));
           end;
@@ -299,7 +304,6 @@ begin
       end;
     end;
   end;
-
 
 end;
 
@@ -313,7 +317,7 @@ var
   BoolStr: string;
 const
   _JSONPrefix = '{';
-  _JSONSufix  = '}';
+  _JSONSufix = '}';
 begin
   Contexto := TRttiContext.Create;
   TypObj := Contexto.GetType(TObject(Self).ClassInfo);
@@ -324,41 +328,40 @@ begin
     begin
       if Atributo is FieldName then
       begin
-        //if FieldName(Atributo).Name = AProp then
-        //begin
-          //Verifica o tipo de dados aceito pelo campo
-          case Prop.GetValue(TObject(Self)).Kind of
-            //Tipos referentes a texto
-            tkWChar, tkLString, tkWString, tkString,
-            tkChar, tkUString:
-              JSONList := JSONList + '"' + FieldName(Atributo).Name + '": ' +
-                '"' + Prop.GetValue(TObject(Self)).AsString + '",';
+        // if FieldName(Atributo).Name = AProp then
+        // begin
+        // Verifica o tipo de dados aceito pelo campo
+        case Prop.GetValue(TObject(Self)).Kind of
+          // Tipos referentes a texto
+          tkWChar, tkLString, tkWString, tkString, tkChar, tkUString:
+            JSONList := JSONList + '"' + FieldName(Atributo).Name + '": ' + '"'
+              + Prop.GetValue(TObject(Self)).AsString + '",';
 
-            //Tipos referentes a numeros inteiros
-            tkInteger, tkInt64:
-              JSONList := JSONList + '"' + FieldName(Atributo).Name + '": ' +
-                IntToStr(Prop.GetValue(TObject(Self)).AsInteger) + ',';
+          // Tipos referentes a numeros inteiros
+          tkInteger, tkInt64:
+            JSONList := JSONList + '"' + FieldName(Atributo).Name + '": ' +
+              IntToStr(Prop.GetValue(TObject(Self)).AsInteger) + ',';
 
-            //Tipos referentes a float,real,etc(todos com ponto flutuante)
-            tkFloat:
-              JSONList := JSONList + '"' + FieldName(Atributo).Name + '": ' +
-                FloatToStr(Prop.GetValue(TObject(Self)).AsExtended) + ',';
+          // Tipos referentes a float,real,etc(todos com ponto flutuante)
+          tkFloat:
+            JSONList := JSONList + '"' + FieldName(Atributo).Name + '": ' +
+              FloatToStr(Prop.GetValue(TObject(Self)).AsExtended) + ',';
 
-            //Tipos referentes a booleanos e outros logicos
-            tkEnumeration:
-              if Prop.GetValue(TObject(Self)).AsBoolean then
-                BoolStr := 'true';
-              else
-                BoolStr := 'false';
-              JSONList := JSONList + '"' + FieldName(Atributo).Name + '": ' +
-                BoolStr + ',';
-          end;
-        //end;
+          // Tipos referentes a booleanos e outros logicos
+          tkEnumeration:
+            if Prop.GetValue(TObject(Self)).AsBoolean then
+              BoolStr := 'true';
+        else
+          BoolStr := 'false';
+          JSONList := JSONList + '"' + FieldName(Atributo).Name + '": ' +
+            BoolStr + ',';
+        end;
+        // end;
       end;
     end;
   end;
 
-  JSONList := Copy(JSONList,1, length(JSONList) - 1);
+  JSONList := Copy(JSONList, 1, length(JSONList) - 1);
 
   Result := _JSONPrefix + JSONList + _JSONSufix;
 end;
