@@ -9,7 +9,8 @@ uses
   Vcl.ComCtrls, Vcl.Grids, Vcl.DBGrids, System.JSON, UBaseView,
   FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Param,
   FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf, FireDAC.DApt.Intf,
-  Data.DB, FireDAC.Comp.DataSet, FireDAC.Comp.Client;
+  Data.DB, FireDAC.Comp.DataSet, FireDAC.Comp.Client, IdBaseComponent,
+  IdComponent, IdTCPConnection, IdTCPClient, IdHTTP;
 
 type
   TForm1 = class(TBaseView)
@@ -65,7 +66,7 @@ implementation
 
 {$R *.dfm}
 
-uses UListaMedicos, UListaPacientes, UBaseModel;
+uses UListaMedicos, UListaPacientes, UBaseModel, UAgendamentoModel;
 
 procedure TForm1.AfterConstruction;
 begin
@@ -133,7 +134,6 @@ begin
       // ShowMessage('ok');
 end;
 
-
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   //
@@ -169,7 +169,7 @@ begin
   else
   begin
     Self.DataSet.SetProp('cod_medico', cod_medico.Text);
-    Self.DataSet.SetProp('cod_paciente', cod_medico.Text);
+    Self.DataSet.SetProp('cod_paciente', cod_paciente.Text);
     Self.DataSet.SetProp('memo_mtvCancel', memo_mtvCancel.Text);
     Self.DataSet.SetProp('strDateTime', strDateTime);
 

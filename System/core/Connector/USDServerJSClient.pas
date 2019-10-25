@@ -3,8 +3,8 @@ unit USDServerJSClient;
 interface
 
 uses
-  FireDAC.Comp.Client, Rest.Response.Adapter, REST.Client, System.JSON,
-  System.Classes, System.SysUtils, REST.Types, Data.DB;
+  FireDAC.Comp.Client, Rest.Response.Adapter, Rest.Client, System.JSON,
+  System.Classes, System.SysUtils, Rest.Types, Data.DB;
 
 type
   TSDServerJSClient = class
@@ -23,7 +23,7 @@ type
     property Token: string read FToken;
     property Response: TRESTResponse read FResponse;
 
-    //Funcoes para comunicacao com os HTTP Verbs responsaveis pelo CRUD
+    // Funcoes para comunicacao com os HTTP Verbs responsaveis pelo CRUD
     procedure Get(sURI: string; ADataSet: TDataSet);
     procedure GetOne(sURI: string; AParam: string);
     function Put(sURI: string; AParam: string; AJSON: string): string;
@@ -43,29 +43,33 @@ var
   jsStream: TStringStream;
   Retorno: string;
 const
-  _URIAuth  = 'autenticacao';
-  _credenciais = '?username=%s&password=%s';
+  _URIAuth = 'estagiario';
+  _credenciais = '@D5estagio2019';
 begin
   Retorno := '';
-  //Monta a URL de autenticacao com usuario e senha como ultimos parametros
-  Self.RestClient.BaseURL := Self.URLBase + _URIAuth + Format(_credenciais,['estagiario','@D5estagio2019']);
+  // Monta a URL de autenticacao com usuario e senha como ultimos parametros
+  Self.RestClient.BaseURL := Self.URLBase + _URIAuth;
+  RestClient.AddParameter('username', _URIAuth);
+  RestClient.AddParameter('password', _credenciais);
 
   try
     Self.Request.Execute;
-  except on E: Exception do
-    raise Exception.Create('Erro ao tentar conectar com servidor. Detalhe: ' + E.Message);
+  except
+    on E: Exception do
+      raise Exception.Create('Erro ao tentar conectar com servidor. Detalhe: ' +
+        E.Message);
   end;
 
-  //Nesse ponto em diante recebemos o retorno completo via rest response e extraimos apenas o token
+  // Nesse ponto em diante recebemos o retorno completo via rest response e extraimos apenas o token
   jsStream := TStringStream.Create(Self.Response.JSONValue.ToString);
-  jsObj    := TJSONObject.Create;
-  jsObj.Parse(jsStream.Bytes,0);
+  jsObj := TJSONObject.Create;
+  jsObj.Parse(jsStream.Bytes, 0);
 
   for jsPair in jsObj do
   begin
     if jsPair.JsonString.Value = 'token' then
     begin
-      Retorno := jsPair.JsonValue.Value;
+      Retorno := jsPair.JSONValue.Value;
       Break;
     end;
   end;
@@ -73,32 +77,32 @@ begin
   Result := Retorno;
 end;
 
-constructor TSDServerJSClient.Create(AServidor, APorta: string; ARESTClient: TRESTClient;
-      ARESTRequest: TRESTRequest; ARESTResponse: TRESTResponse;
-      AResponseAdapter: TRESTResponseDataSetAdapter);
+constructor TSDServerJSClient.Create(AServidor, APorta: string;
+  ARESTClient: TRESTClient; ARESTRequest: TRESTRequest;
+  ARESTResponse: TRESTResponse; AResponseAdapter: TRESTResponseDataSetAdapter);
 var
   sURL: string;
 begin
-  //Monta a URL base para a comunicacao e requisicoes a API
+  // Monta a URL base para a comunicacao e requisicoes a API
   sURL := 'http://' + AServidor + ':' + APorta + '/';
 
-  //Inicializa os controles necessarios para a comunicacao REST
+  // Inicializa os controles necessarios para a comunicacao REST
   Self.RestClient := ARESTClient;
 
   Self.URLBase := sURL;
 
-  Self.FResponse   := ARESTResponse;
-  Self.Request     := ARESTRequest;
+  Self.FResponse := ARESTResponse;
+  Self.Request := ARESTRequest;
 
   Self.Request.Client := Self.RestClient;
 
   Self.ResponseAdapter := AResponseAdapter;
 
-  //Parametriza o controle responsavel por transformar a request em dados
+  // Parametriza o controle responsavel por transformar a request em dados
   Self.ResponseAdapter.Response := Self.Response;
 
-  //Faz a autenticacao com a API e recebe um token
-  //Esse token sera necessario para todas as demais requisicoes pelo sistema
+  // Faz a autenticacao com a API e recebe um token
+  // Esse token sera necessario para todas as demais requisicoes pelo sistema
   Self.FToken := Self.AutenticarAPI(Self.Response);
 
   if Self.Token = '' then
@@ -120,15 +124,15 @@ end;
 
 procedure TSDServerJSClient.GetOne(sURI: string; AParam: string);
 begin
-  //Monta a url de comunicacao com a API Rest ja com os parametros necessarios
+  // Monta a url de comunicacao com a API Rest ja com os parametros necessarios
   Self.RestClient.BaseURL := Self.URLBase + sURI + '/' + AParam +
-  //Passa o token de autenticacao
-  Self.Parametrize(EmptyStr);
+  // Passa o token de autenticacao
+    Self.Parametrize(EmptyStr);
 
-  //Seta o HTTP Verb como Get
+  // Seta o HTTP Verb como Get
   Self.Request.Method := rmGET;
 
-  //Faz a requisicao a API
+  // Faz a requisicao a API
   Self.Request.Execute;
 end;
 
@@ -144,12 +148,13 @@ begin
   if AJSON <> EmptyStr then
   begin
     jsStream := TStringStream.Create(AJSON);
-    jsObj    := TJSONObject.Create;
-    jsObj.Parse(jsStream.Bytes,0);
+    jsObj := TJSONObject.Create;
+    jsObj.Parse(jsStream.Bytes, 0);
 
     for jsPair in jsObj do
     begin
-      Self.RestClient.AddParameter(jsPair.JsonString.Value, jsPair.JsonValue.Value);
+      Self.RestClient.AddParameter(jsPair.JsonString.Value,
+        jsPair.JSONValue.Value);
     end;
   end;
 
@@ -163,6 +168,7 @@ var
   sURL: string;
 begin
   sURL := Self.URLBase + sURI + Parametrize(AJSON);
+  Parametrize(AJSON);
   Self.Request.Method := rmPOST;
   Self.Request.Execute;
 
@@ -173,18 +179,18 @@ function TSDServerJSClient.Put(sURI, AParam: string; AJSON: string): string;
 var
   sURL: string;
 begin
-  //Monta a url com a requisicao a API rest
+  // Monta a url com a requisicao a API rest
   sURL := Self.URLBase + sURI + '/' + AParam +
-    //Seta os parametros vindos da string JSON e acrescenta o token de autenticacao
+  // Seta os parametros vindos da string JSON e acrescenta o token de autenticacao
     Parametrize(AJSON);
 
-  //Seta o http verb como Put
+  // Seta o http verb como Put
   Self.Request.Method := rmPUT;
 
-  //Faz a requisicao a API
+  // Faz a requisicao a API
   Self.Request.Execute;
 
-  //Retorna o resultado da request enviado da API
+  // Retorna o resultado da request enviado da API
   Result := Self.Response.JSONValue.ToString;
 end;
 
@@ -197,9 +203,10 @@ begin
     Self.Request.Execute;
 
     Self.ResponseAdapter.Dataset := ADataSet;
-  except on E: Exception do
-    raise Exception.Create('Erro ao tentar executar método no servidor. Detalhe: ' +
-      E.Message);
+  except
+    on E: Exception do
+      raise Exception.Create
+        ('Erro ao tentar executar método no servidor. Detalhe: ' + E.Message);
   end;
 end;
 
